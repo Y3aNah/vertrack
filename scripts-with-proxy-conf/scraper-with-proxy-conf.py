@@ -78,7 +78,6 @@ def write_markdown_table(versions, filename):
         for product, info in sorted(versions.items()):
             file.write(f"| {product} | {info['version']} | {info['date']} |\n")
 
-# Main function
 def main():
     config = read_config('config.yaml')
     url = config.get('url')
@@ -89,10 +88,20 @@ def main():
     if not url:
         print("URL not found in the YAML configuration file.")
         return
-    latest_versions = scrape_latest_versions(url, proxies)
-    if latest_versions:
-        write_markdown_table(latest_versions, "latest-versions.md")
-        print("Latest versions saved to latest-versions.md")
+
+    # Add try-except block to handle proxy connection
+    try:
+        response = requests.get(url, proxies=proxies)
+        if response.status_code == 200:
+            print('Proxy connection successful!')
+            latest_versions = scrape_latest_versions(url, proxies)
+            if latest_versions:
+                write_markdown_table(latest_versions, "latest-versions.md")
+                print("Latest versions saved to latest-versions.md")
+        else:
+            print('Failed to connect to the proxy.')
+    except Exception as e:
+        print('An error occurred:', e)
 
 if __name__ == "__main__":
     main()
