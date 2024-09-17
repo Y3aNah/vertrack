@@ -1,0 +1,42 @@
+name: Generate README
+
+on:
+  workflow_dispatch:
+
+jobs:
+  generate-readme:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+
+    - name: Generate README with GPT
+      env:
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      run: |
+        # List all files in the repository
+        FILE_LIST=$(find . -type f | grep -v "./.git/" | grep -v "./README.md")
+
+        # Prepare the prompt for GPT
+        PROMPT="Please generate a markdown summary of the following files in this repository:\n\n$FILE_LIST"
+
+        # Call OpenAI API to generate README content
+        RESPONSE=$(curl -s https://api.openai.com/v1/completions \
+          -H "Content-Type: application/json" \
+          -H "Authorization: Bearer $OPENAI_API_KEY" \
+          -d '{
+            "model": "gpt-4",
+            "messages": [{"role": "user", "content": "'"$PROMPT"'"}],
+            "temperature": 0.7
+          }' | jq -r '.choices[0].message.content')
+
+        # Save the response to README.md
+        echo "$RESPONSE" > README.md
+
+    - name: Commit README.md
+      run: |
+        git config --global user.name "github-actions"
+        git config --global user.email "github-actions@github.com"
+        git add README.md
+        git commit -m "Update README.md using OpenAI GPT"
+        git push
